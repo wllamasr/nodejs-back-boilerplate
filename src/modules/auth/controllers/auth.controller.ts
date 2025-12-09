@@ -1,56 +1,51 @@
-import { Request, Response } from 'express';
-import { Controller } from '../../../core/decorators/controller.decorator';
-import { Post } from '../../../core/decorators/http-methods.decorator';
-import { ValidateBody } from '../../../core/decorators/validate.decorator';
+import { Controller } from '@/core/decorators/controller.decorator';
+import { Post } from '@/core/decorators/route.decorators';
+import { Body, Cookie } from '@/core/decorators/param.decorators';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../../users/services/user.service';
-import { RegisterDto } from '../dtos/register.dto';
-import { LoginDto } from '../dtos/login.dto';
 
 @Controller('/auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private userService: UserService,
-  ) { }
+  private authService = new AuthService();
+  private userService = new UserService();
 
   @Post('/register')
-  @ValidateBody(RegisterDto)
-  async register(req: Request, res: Response) {
+  async register(@Body() body: any) {
     try {
-      const { email, password, name } = req.body;
+      const { email, password, name } = body;
       const hashedPassword = await this.authService.hashPassword(password);
       const user = await this.userService.create({ email, password: hashedPassword, name });
-      res.json(user);
+      return user;
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      throw new Error(error.message); // Elysia will handle error
     }
   }
 
   @Post('/login')
-  @ValidateBody(LoginDto)
-  async login(req: Request, res: Response) {
+  async login(@Body() body: any, @Cookie() cookie: any) {
     try {
-      const { email, password } = req.body;
+      const { email, password } = body;
       const user = await this.authService.validateUser(email, password);
       if (!user) {
-        res.status(401).json({ message: 'Invalid credentials' });
-        return;
+        throw new Error('Invalid credentials');
       }
       const token = this.authService.generateToken(user);
-      res.cookie('Authentication', token, {
+
+      cookie.Authentication.set({
+        value: token,
         httpOnly: true,
         path: '/',
       });
-      res.json({ user, token });
+
+      return { user, token };
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      throw new Error(error.message);
     }
   }
 
   @Post('/logout')
-  async logout(req: Request, res: Response) {
-    res.clearCookie('Authentication');
-    res.json({ message: 'Logged out successfully' });
+  logout(@Cookie() cookie: any) {
+    cookie.Authentication.remove();
+    return { message: 'Logged out successfully' };
   }
 }

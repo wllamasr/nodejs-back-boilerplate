@@ -1,13 +1,10 @@
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
-import { ConfigService } from '../../../core/config/config.service';
 import { UserService } from '../../users/services/user.service';
 
 export class AuthService {
-  constructor(
-    private userService: UserService,
-    private configService: ConfigService,
-  ) { }
+  private userService = new UserService();
+  private jwtSecret = process.env.JWT_SECRET || 'secret';
 
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
@@ -18,14 +15,12 @@ export class AuthService {
   }
 
   generateToken(payload: any): string {
-    const secret = this.configService.get<any>('secrets').jwtSecret;
-    return jwt.sign(payload, secret, { expiresIn: '1h' });
+    return jwt.sign(payload, this.jwtSecret, { expiresIn: '1h' });
   }
 
   verifyToken(token: string): any {
-    const secret = this.configService.get<any>('secrets').jwtSecret;
     try {
-      return jwt.verify(token, secret);
+      return jwt.verify(token, this.jwtSecret);
     } catch (e) {
       return null;
     }
@@ -40,3 +35,4 @@ export class AuthService {
     return null;
   }
 }
+

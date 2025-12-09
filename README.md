@@ -1,107 +1,143 @@
-# Express Boilerplate
+# Multi-Tenant Store Backend
 
-A modular Express.js boilerplate with NestJS-like architecture, featuring TypeScript, DrizzleORM, decorator-based routing, and comprehensive authentication.
+A modular backend application built with **Bun**, **ElysiaJS**, and **DrizzleORM**, featuring a multi-tenant architecture, background jobs, and a NestJS-like decorator system.
 
-## Features
+## 🚀 Tech Stack
 
-- 🎯 **Decorator-based Routing** - `@Controller`, `@Get`, `@Post`, etc.
-- 🏗️ **Modular Architecture** - Organize code with `@Module` decorator
-- 💉 **Dependency Injection** - Simple DI container for services
-- 🔒 **JWT Authentication** - Bcrypt password hashing + JWT tokens
-- 🛡️ **Middleware Support** - Decorator-based with DI
-- 🗄️ **DrizzleORM** - Type-safe queries (MySQL + SQLite for tests)
-- ⚙️ **TypeScript Config** - Environment-based configuration
-- 📝 **Winston Logging** - Structured logging
-- ✅ **Jest Testing** - Fast tests with in-memory SQLite
+- **Runtime:** [Bun](https://bun.sh)
+- **Framework:** [ElysiaJS](https://elysiajs.com)
+- **Database:** PostgreSQL (via DrizzleORM)
+- **Caching & Queues:** Redis, BullMQ
+- **Reverse Proxy:** Traefik (with SSL)
+- **Language:** TypeScript
 
-## Quick Start
+## 🏢 Multi-Tenancy
 
-```bash
-# Install dependencies
-npm install
+This project implements a **subdomain-based multi-tenancy** strategy.
+- **Tenants** are identified by the subdomain (e.g., `tenant1.localtest.me`).
+- **Middleware** (`TenantMiddleware`) resolves the tenant from the `Host` header and attaches it to the request context.
+- **Traefik** handles routing and SSL termination for dynamic subdomains.
 
-# Setup environment
-cp .env.example .env
-# Edit .env with your database credentials
+## 🛠️ Getting Started
 
-# Setup database
-npm run db:push
+### Prerequisites
+- [Bun](https://bun.sh) installed
+- [Docker](https://www.docker.com/) & Docker Compose
+- [mkcert](https://github.com/FiloSottile/mkcert) (for local SSL)
 
-# Start development server
-npm run dev
+### Local Development (with Docker Compose)
 
-# Run tests
-npm test
-```
+This is the recommended way to run the full stack (App, DB, Redis, Traefik).
 
-## Project Structure
+1. **Setup Environment**
+   ```bash
+   cp .env.example .env
+   # Update .env with your credentials if needed
+   ```
+
+2. **Generate SSL Certificates**
+   ```bash
+   mkdir certs
+   mkcert -install
+   mkcert -key-file certs/localtest.me-key.pem -cert-file certs/localtest.me.pem "*.localtest.me" localtest.me
+   ```
+
+3. **Start Services**
+   ```bash
+   docker-compose up --build
+   ```
+
+4. **Access the App**
+   - API: `https://api.localtest.me` (or any subdomain)
+   - Traefik Dashboard: `http://localhost:8080`
+
+### Local Development (Manual)
+
+If you prefer running the app outside Docker (e.g., for faster feedback loop), you still need Postgres and Redis running.
+
+1. **Start Dependencies**
+   ```bash
+   docker-compose up db redis -d
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   bun install
+   ```
+
+3. **Run the App**
+   ```bash
+   bun run dev
+   ```
+   The app will run on `http://localhost:3000`. Note that subdomain resolution might require manual `Host` header manipulation or local DNS setup if not using Traefik.
+
+## 📝 Creating a CRUD Operation
+
+We use a **decorator-based** approach similar to NestJS.
+
+1. **Create a Model** (`src/modules/your-module/models/item.model.ts`)
+   ```typescript
+   import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+
+   export const items = pgTable('items', {
+     id: serial('id').primaryKey(),
+     name: text('name').notNull(),
+   });
+   ```
+
+2. **Create a Service** (`src/modules/your-module/services/item.service.ts`)
+   ```typescript
+   import { db } from '@framework/database';
+   import { items } from '../models/item.model';
+
+   export class ItemService {
+     async findAll() {
+       return await db.select().from(items);
+     }
+   }
+   ```
+
+3. **Create a Controller** (`src/modules/your-module/controllers/item.controller.ts`)
+   ```typescript
+   import { Controller } from '@/core/decorators/controller.decorator';
+   import { Get } from '@/core/decorators/route.decorators';
+   import { ItemService } from '../services/item.service';
+
+   @Controller('/items')
+   export class ItemController {
+     private itemService = new ItemService();
+
+     @Get('/')
+     findAll() {
+       return this.itemService.findAll();
+     }
+   }
+   ```
+
+4. **Register in Module** (`src/modules/your-module/your.module.ts`)
+   ```typescript
+   import { Module } from '@/core/decorators/module.decorator';
+   import { ItemController } from './controllers/item.controller';
+
+   @Module({
+     controllers: [ItemController],
+   })
+   export class YourModule {}
+   ```
+
+## 📂 Project Structure
 
 ```
 src/
-├── core/           # Framework code (DI, decorators, etc.)
-├── modules/        # Feature modules (users, auth, etc.)
-├── config/         # Environment configurations
+├── core/           # Core decorators, logger, middlewares
+├── framework/      # Framework utilities (DB, Queue, Bootstrap)
+├── modules/        # Feature modules (Users, Auth, Tenants)
+│   ├── users/
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── services/
+│   │   └── users.module.ts
 ├── app.module.ts   # Root module
-└── app.ts          # Entry point
+├── index.ts        # Entry point
+└── worker.ts       # Background worker entry point
 ```
-
-## Documentation
-
-- **[Getting Started](docs/getting-started.md)** - Installation and basic usage
-- **[User Guide](docs/user-guide.md)** - How to use the framework
-- **[API Reference](docs/api-reference.md)** - API endpoints documentation
-- **[Development Guide](docs/development-guide.md)** - Adding features step-by-step
-- **[Architecture](docs/architecture.md)** - Technical architecture deep dive
-- **[Design Decisions](docs/design-decisions.md)** - Why we made certain choices
-
-## Example: Creating a Controller
-
-```typescript
-import { Controller } from './core/decorators/controller.decorator';
-import { Get, Post } from './core/decorators/http-methods.decorator';
-
-@Controller('/users')
-export class UserController {
-  constructor(private userService: UserService) {}
-
-  @Get('/')
-  async findAll(req: Request, res: Response) {
-    return await this.userService.findAll();
-  }
-
-  @Post('/')
-  async create(req: Request, res: Response) {
-    return await this.userService.create(req.body);
-  }
-}
-```
-
-## Scripts
-
-```bash
-npm run dev          # Development server with auto-reload
-npm run build        # Build for production
-npm start            # Run production build
-npm test             # Run tests
-npm run db:generate  # Generate database migration
-npm run db:push      # Apply schema to database
-```
-
-## Tech Stack
-
-- **Runtime:** Node.js 18+
-- **Language:** TypeScript
-- **Framework:** Express.js
-- **ORM:** DrizzleORM
-- **Database:** MySQL (production), SQLite (tests)
-- **Authentication:** JWT + bcrypt
-- **Testing:** Jest + Supertest
-- **Logging:** Winston
-
-## License
-
-MIT
-
-## Contributing
-
-See [Development Guide](docs/development-guide.md) for details on how to contribute.

@@ -1,19 +1,18 @@
 import 'reflect-metadata';
-import { METADATA_KEYS } from '../constants/metadata-keys';
+import { JobDefinition } from '../../../framework/queue';
 
 export interface ModuleMetadata {
+  imports?: any[];
   controllers?: any[];
   providers?: any[];
-  imports?: any[];
   middlewares?: any[];
+  jobs?: JobDefinition<any>[];
 }
+
+export const MODULE_METADATA_KEY = 'module:metadata';
 
 export function Module(metadata: ModuleMetadata): ClassDecorator {
   return (target: Function) => {
-    Reflect.defineMetadata(METADATA_KEYS.MODULE_CONTROLLERS, metadata.controllers || [], target);
-    Reflect.defineMetadata(METADATA_KEYS.MODULE_MIDDLEWARES, metadata.middlewares || [], target);
-    // We can store imports and providers if we want to expand dependency injection later
-    Reflect.defineMetadata('imports', metadata.imports || [], target);
-    Reflect.defineMetadata('providers', metadata.providers || [], target);
+    Reflect.defineMetadata(MODULE_METADATA_KEY, metadata, target);
   };
 }

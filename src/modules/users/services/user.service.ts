@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../../../core/database/connection';
+import { db } from '../../../../framework/database';
 import { users } from '../models/user.model';
 
 export class UserService {
@@ -18,7 +18,6 @@ export class UserService {
   }
 
   async create(data: typeof users.$inferInsert) {
-    // Explicitly set timestamps for SQLite compatibility
     const now = new Date();
     const userData = {
       ...data,
@@ -26,19 +25,24 @@ export class UserService {
       updatedAt: data.updatedAt || now,
     };
 
-    const result = await db.insert(users).values(userData);
+    const result = await db.insert(users).values(userData).returning();
+    return result[0];
+  }
 
-    // Handle different result structures for MySQL vs SQLite
-    let insertId: number;
-    if (result[0]) {
-      // MySQL returns insertId in result[0]
-      insertId = result[0].insertId;
-    } else {
-      // SQLite returns lastInsertRowid directly
-      // @ts-ignore
-      insertId = result.lastInsertRowid;
-    }
+  async update(id: number, data: Partial<typeof users.$inferInsert>) {
+    const now = new Date();
+    const userData = {
+      ...data,
+      updatedAt: now,
+    };
 
-    return this.findOne(insertId);
+    const result = await db.update(users).set(userData).where(eq(users.id, id)).returning();
+    return result[0];
+  }
+
+  async delete(id: number) {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result[0];
   }
 }
+
