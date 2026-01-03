@@ -5,6 +5,8 @@ import { ROUTE_METADATA_KEY, RouteMetadata } from '../core/decorators/route.deco
 import { PARAM_METADATA_KEY, ParamMetadata } from '../core/decorators/param.decorators';
 import { Container } from '../core/di/container';
 import { MODULE_METADATA_KEY, ModuleMetadata } from '../core/decorators/module.decorator';
+import { ROLES_METADATA_KEY, PERMISSIONS_METADATA_KEY } from '@/modules/acl/decorators/acl.decorator';
+import { AclService } from '@/modules/acl/services/acl.service';
 
 export function registerControllers(app: Elysia, controllers: any[]) {
   controllers.forEach((ControllerClass) => {
@@ -27,7 +29,34 @@ export function registerControllers(app: Elysia, controllers: any[]) {
       // Sort params by index to ensure correct order
       params.sort((a, b) => a.index - b.index);
 
+      // ACL Metadata
+      const rolesRule = Reflect.getMetadata(ROLES_METADATA_KEY, ControllerClass.prototype, route.handlerName);
+      const permissionsRule = Reflect.getMetadata(PERMISSIONS_METADATA_KEY, ControllerClass.prototype, route.handlerName);
+
       const handler = async (context: any) => {
+        // ACL Guard Check
+        if (rolesRule || permissionsRule) {
+          // Assume user is attached to context.store.user or context.user by AuthMiddleware
+          // We need to resolve AclService. Ideally via Container.
+          const aclService = Container.get(AclService);
+          const user = context.user || context.store?.user;
+
+          if (!user || !user.id) {
+            // If route is protected by ACL but no user found -> Unauthorized
+            throw new Error('Unauthorized'); // Elysia should map to 401/403
+          }
+
+          if (rolesRule) {
+            const hasRole = await (aclService as AclService).evaluateRule(user.id, rolesRule, 'role');
+            if (!hasRole) throw new Error('Forbidden: Insufficient Role');
+          }
+
+          if (permissionsRule) {
+            const hasPerm = await (aclService as AclService).evaluateRule(user.id, permissionsRule, 'permission');
+            if (!hasPerm) throw new Error('Forbidden: Insufficient Permissions');
+          }
+        }
+
         const args: any[] = [];
 
         for (const param of params) {

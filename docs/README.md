@@ -17,7 +17,9 @@ Building features and extending the framework:
 
 4. **[Development Guide](development-guide.md)** - Step-by-step feature creation
 5. **[Architecture](architecture.md)** - Technical deep dive
-6. **[Design Decisions](design-decisions.md)** - Why we made certain choices
+6. **[Memory Bank (Internals)](MEMORY_BANK.md)** - Core framework internals & Logic
+7. **[ACL System](guides/acl-system.md)** - Authorization guide
+8. **[Design Decisions](design-decisions.md)** - Why we made certain choices
 
 ## Quick Links
 
