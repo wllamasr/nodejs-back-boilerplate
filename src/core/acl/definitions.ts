@@ -46,7 +46,7 @@ export const STATIC_PERMISSIONS = [
 
 // Map Roles to Permissions (Role Slug -> Array of Permission Slugs)
 export const STATIC_ROLE_PERMISSIONS: Record<string, string[]> = {
-  'super-admin': ['users.manage', 'dashboard.view', 'content.manage'],
+  'super-admin': STATIC_PERMISSIONS.map((p) => p.slug),
   'admin': ['users.manage', 'dashboard.view'],
   'mod': ['content.manage'],
 };
