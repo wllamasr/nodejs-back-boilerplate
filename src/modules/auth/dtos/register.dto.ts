@@ -1,13 +1,9 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { z } from 'zod';
 
-export class RegisterDto {
-  @IsEmail({}, { message: 'Please provide a valid email address' })
-  email!: string;
+export const RegisterSchema = z.object({
+  email: z.string().email({ message: 'Please provide a valid email address' }),
+  password: z.string().min(8, { message: 'Password must be at least 8 characters long' }),
+  name: z.string(),
+});
 
-  @IsString()
-  @MinLength(8, { message: 'Password must be at least 8 characters long' })
-  password!: string;
-
-  @IsString()
-  name!: string;
-}
+export type RegisterDto = z.infer<typeof RegisterSchema>;

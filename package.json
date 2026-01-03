@@ -4,11 +4,11 @@
   "description": "Bun + Elysia boilerplate with Drizzle, Postgres, and Redis",
   "main": "src/index.ts",
   "scripts": {
-    "start": "bun run src/index.ts",
-    "dev": "bun run --watch src/index.ts",
+    "start": "bun run db:push && bun run src/index.ts",
+    "prestart": "bun run db:push",
     "test": "bun test",
-    "db:generate": "drizzle-kit generate:pg",
-    "db:push": "drizzle-kit push:pg",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
     "debug": "bun run --inspect src/index.ts"
   },
   "dependencies": {
@@ -22,7 +22,9 @@
     "class-validator": "^0.14.0",
     "class-transformer": "^0.5.1",
     "reflect-metadata": "^0.2.1",
-    "winston": "^3.18.3"
+    "winston": "^3.18.3",
+    "zod": "^3.22.4",
+    "drizzle-zod": "^0.5.1"
   },
   "devDependencies": {
     "bun-types": "latest",

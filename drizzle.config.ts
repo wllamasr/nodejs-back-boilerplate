@@ -1,17 +1,26 @@
 import type { Config } from 'drizzle-kit';
-import { ConfigService } from './src/core/config/config.service';
 
-const configService = new ConfigService();
-const dbConfig = configService.get<any>('database');
+const {
+  POSTGRES_USER,
+  POSTGRES_PASSWORD,
+  POSTGRES_DB,
+  DB_HOST,
+  DB_PORT,
+} = process.env;
+
+const host = DB_HOST || 'localhost';
+const port = DB_PORT || '5432';
+const dbName = POSTGRES_DB || 'express_boilerplate';
+const user = POSTGRES_USER || 'postgres';
+const password = POSTGRES_PASSWORD || 'postgres';
+
+const connectionString = process.env.DATABASE_URL || `postgres://${user}:${password}@${host}:${port}/${dbName}`;
 
 export default {
   schema: './src/modules/**/models/*.ts',
   out: './drizzle',
-  driver: 'mysql2',
+  dialect: 'postgresql',
   dbCredentials: {
-    host: dbConfig.host,
-    user: dbConfig.user,
-    password: dbConfig.password,
-    database: dbConfig.database,
+    url: connectionString,
   },
 } satisfies Config;

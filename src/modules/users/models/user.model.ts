@@ -9,3 +9,8 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+
+

@@ -1,10 +1,10 @@
 import { Elysia } from 'elysia';
 import 'reflect-metadata';
-import { CONTROLLER_METADATA_KEY, ControllerMetadata } from '../core/decorators/controller.decorator';
-import { ROUTE_METADATA_KEY, RouteMetadata } from '../core/decorators/route.decorators';
-import { PARAM_METADATA_KEY, ParamMetadata } from '../core/decorators/param.decorators';
-import { Container } from '../core/di/container';
-import { MODULE_METADATA_KEY, ModuleMetadata } from '../core/decorators/module.decorator';
+import { CONTROLLER_METADATA_KEY, ControllerMetadata } from '../src/core/decorators/controller.decorator';
+import { ROUTE_METADATA_KEY, RouteMetadata } from '../src/core/decorators/route.decorators';
+import { PARAM_METADATA_KEY, ParamMetadata } from '../src/core/decorators/param.decorators';
+import { Container } from '../src/core/di/container';
+import { MODULE_METADATA_KEY, ModuleMetadata } from '../src/core/decorators/module.decorator';
 import { ROLES_METADATA_KEY, PERMISSIONS_METADATA_KEY } from '@/modules/acl/decorators/acl.decorator';
 import { AclService } from '@/modules/acl/services/acl.service';
 
@@ -60,26 +60,38 @@ export function registerControllers(app: Elysia, controllers: any[]) {
         const args: any[] = [];
 
         for (const param of params) {
+          let value: any;
           switch (param.type) {
             case 'body':
-              args[param.index] = param.data ? context.body[param.data] : context.body;
+              value = param.data ? context.body[param.data] : context.body;
               break;
             case 'query':
-              args[param.index] = param.data ? context.query[param.data] : context.query;
+              value = param.data ? context.query[param.data] : context.query;
               break;
             case 'param':
-              args[param.index] = param.data ? context.params[param.data] : context.params;
+              value = param.data ? context.params[param.data] : context.params;
               break;
             case 'headers':
-              args[param.index] = param.data ? context.headers[param.data] : context.headers;
+              value = param.data ? context.headers[param.data] : context.headers;
               break;
             case 'cookie':
-              args[param.index] = param.data ? context.cookie[param.data] : context.cookie;
+              value = param.data ? context.cookie[param.data] : context.cookie;
               break;
             case 'context':
-              args[param.index] = context;
+              value = context;
               break;
           }
+
+          if (param.schema) {
+            try {
+              value = param.schema.parse(value);
+            } catch (error: any) {
+              // Propagate generic error or enhance it.
+              throw new Error(`Validation failed for argument ${param.index}: ${error.message}`);
+            }
+          }
+
+          args[param.index] = value;
         }
 
         // Call the controller method with injected arguments

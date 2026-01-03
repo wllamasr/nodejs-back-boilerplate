@@ -3,6 +3,9 @@ import { Get, Post, Put, Delete } from '@/core/decorators/route.decorators';
 import { Body, Param } from '@/core/decorators/param.decorators';
 import { UserService } from '../services/user.service';
 
+import { CreateUserSchema } from '../dtos/create-user.dto';
+import type { CreateUserDto } from '../dtos/create-user.dto';
+
 @Controller('/users')
 export class UserController {
   private userService = new UserService();
@@ -13,7 +16,7 @@ export class UserController {
   }
 
   @Post('/')
-  create(@Body() body: any) {
+  create(@Body(CreateUserSchema) body: CreateUserDto) {
     return this.userService.create(body);
   }
 

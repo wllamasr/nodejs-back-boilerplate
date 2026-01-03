@@ -4,13 +4,18 @@ import { Body, Cookie } from '@/core/decorators/param.decorators';
 import { AuthService } from '../services/auth.service';
 import { UserService } from '../../users/services/user.service';
 
+import { RegisterSchema } from '../dtos/register.dto';
+import type { RegisterDto } from '../dtos/register.dto';
+import { LoginSchema } from '../dtos/login.dto';
+import type { LoginDto } from '../dtos/login.dto';
+
 @Controller('/auth')
 export class AuthController {
   private authService = new AuthService();
   private userService = new UserService();
 
   @Post('/register')
-  async register(@Body() body: any) {
+  async register(@Body(RegisterSchema) body: RegisterDto) {
     try {
       const { email, password, name } = body;
       const hashedPassword = await this.authService.hashPassword(password);
@@ -22,7 +27,7 @@ export class AuthController {
   }
 
   @Post('/login')
-  async login(@Body() body: any, @Cookie() cookie: any) {
+  async login(@Body(LoginSchema) body: LoginDto, @Cookie() cookie: any) {
     try {
       const { email, password } = body;
       const user = await this.authService.validateUser(email, password);
@@ -42,6 +47,7 @@ export class AuthController {
       throw new Error(error.message);
     }
   }
+
 
   @Post('/logout')
   logout(@Cookie() cookie: any) {
